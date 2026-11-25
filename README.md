@@ -40,6 +40,33 @@ python -m pqlab env      # checks that this Python can run both parts
 python -m pytest         # runs the tests
 ```
 
+## Part 1: the ML-KEM-768 flow
+
+```bash
+python -m pqlab kem
+```
+
+A **KEM** (key encapsulation mechanism) lets two people end up with the same secret key over an
+open channel. Think of a padlock box:
+
+| Step | Who | FIPS 203 name | What happens | Size |
+|---|---|---|---|---|
+| 1 | Bob | `ML-KEM.KeyGen` | Makes an **encapsulation key** (public, an open padlock) and a **decapsulation key** (private, the only key that opens it) | public key 1184 B; private seed 64 B |
+| 2 | Bob → Alice | | Sends the public key; anyone may see it | 1184 B |
+| 3 | Alice | `ML-KEM.Encaps` | Picks fresh randomness, derives the **shared secret** from it, and locks it into a **ciphertext** with Bob's padlock | secret 32 B; ciphertext 1088 B |
+| 4 | Alice → Bob | | Sends the ciphertext | 1088 B |
+| 5 | Bob | `ML-KEM.Decaps` | Unlocks the ciphertext with his private key and gets the same 32-byte secret | 32 B |
+
+The walkthrough checks that both secrets match (with a constant-time comparison) and that every
+size matches FIPS 203. It also flips one bit of the ciphertext to show **implicit rejection**:
+instead of an error that an attacker could learn from, Bob silently gets an unrelated random
+secret, and the connection simply fails later.
+
+**How this differs from X25519:** in X25519 both sides contribute a key and mix them together
+(Diffie-Hellman). In a KEM only Alice chooses the secret and Bob recovers it. ML-KEM rests on
+lattice maths ("module learning with errors") that no known quantum algorithm breaks, while
+X25519 would fall to Shor's algorithm on a large quantum computer.
+
 ## Safety
 
 - Everything runs on your own machine. The TLS part only talks to a server it starts itself on

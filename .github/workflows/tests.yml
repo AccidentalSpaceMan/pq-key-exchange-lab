@@ -75,3 +75,4 @@ jobs:
         run: |
           pqlab --version
           pqlab env
+          pqlab kem
