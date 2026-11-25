@@ -1,0 +1,46 @@
+# Packaging: lets anyone run  pip install git+https://github.com/AccidentalSpaceMan/pq-key-exchange-lab
+# and then use the  pqlab  command.
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pq-key-exchange-lab"
+dynamic = ["version"]   # read from pqlab/__init__.py, so it's defined in one place
+description = "A hands-on post-quantum key exchange lab: the ML-KEM-768 flow step by step, measured against X25519, and a local TLS 1.3 server and client that negotiate (and prove) the X25519MLKEM768 hybrid."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "AccidentalSpaceMan" }]
+# Python 3.15 is the first version whose built-in ssl module can choose and report
+# the TLS key-exchange group (SSLContext.set_groups / SSLSocket.group).
+requires-python = ">=3.15"
+dependencies = ["cryptography>=46"]   # ML-KEM, X25519 and certificate handling
+keywords = ["post-quantum", "ml-kem", "fips-203", "x25519mlkem768", "tls", "cryptography", "security"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Security :: Cryptography",
+]
+
+[project.scripts]
+pqlab = "pqlab.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/AccidentalSpaceMan/pq-key-exchange-lab"
+Issues = "https://github.com/AccidentalSpaceMan/pq-key-exchange-lab/issues"
+
+[tool.setuptools]
+packages = ["pqlab"]
+
+[tool.setuptools.dynamic]
+version = { attr = "pqlab.__version__" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
