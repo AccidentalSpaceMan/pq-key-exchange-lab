@@ -78,3 +78,26 @@ jobs:
           pqlab kem
           pqlab bench --quick --json "" --svg ""
           pqlab demo
+          pqlab inspect --openssl
+
+  # Scan this lab's own code with the series' crypto-inventory-scanner (Project 2). It should find
+  # ML-KEM as CURRENT and X25519 / ECDSA as LEGACY (quantum-vulnerable), and nothing BROKEN.
+  self-scan:
+    name: Crypto inventory of the lab's own code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.15"
+
+      - name: Install crypto-inventory-scanner v0.9.0
+        run: python -m pip install "crypto-inventory-scanner @ git+https://github.com/AccidentalSpaceMan/crypto-inventory-scanner@v0.9.0"
+
+      - name: Scan pqlab/ (fail on anything BROKEN)
+        run: |
+          cryptoinv scan pqlab --no-color --fail-on broken --cbom pqlab.cbom.json
+          grep -q '"ML-KEM' pqlab.cbom.json && echo "ML-KEM found in the CBOM"

@@ -11,7 +11,14 @@ A hands-on lab for the key exchange that replaces today's quantum-vulnerable one
   by reading the handshake bytes, and includes a small inspector for the server's certificate
   and handshake.
 
-> **Status:** Part 1 and Part 2 work; the certificate inspector and a tagged release come next.
+```bash
+python -m pqlab kem        # Part 1: the ML-KEM-768 flow, step by step
+python -m pqlab bench      # Part 1: sizes and speed vs X25519, with a chart
+python -m pqlab demo       # Part 2: hybrid TLS on 127.0.0.1, proven from the wire
+python -m pqlab inspect    # Part 2: certificate + handshake report with a quantum check
+```
+
+> **Status:** v1.0.0. Both parts work, with tests and CI on Ubuntu, Windows and macOS.
 
 This is the third step of a portfolio series: learn the primitives
 ([crypto-primitive-playground](https://github.com/AccidentalSpaceMan/crypto-primitive-playground)),
@@ -192,6 +199,98 @@ The certificate that proves the server's identity is signed with ECDSA P-256, wh
 computer could forge. That matches the web today: key exchange moved first because of "harvest
 now, decrypt later", while forged signatures only matter once such a computer exists. Moving
 certificates to ML-DSA (FIPS 204) is the next step, and the next project in this series.
+
+### Inspecting the server: certificate and handshake
+
+```bash
+python -m pqlab inspect                 # starts a throwaway local server and inspects it
+python -m pqlab inspect --openssl       # ...and asks the openssl command-line tool too (3.5+)
+python -m pqlab inspect --port 8443 --cafile certs/ca.pem   # inspect a running `pqlab serve`
+python -m pqlab inspect --json          # machine-readable
+```
+
+```text
+TLS inspection of 127.0.0.1:50462
+
+Handshake
+    TLS version          TLSv1.3
+    cipher suite         TLS_AES_256_GCM_SHA384 (256-bit key)
+    key exchange group   X25519MLKEM768  (OpenSSL)
+                         X25519MLKEM768  (decoded from the ServerHello bytes)
+                         X25519MLKEM768  (openssl s_client: OpenSSL 3.5.7)
+    hybrid proven        yes
+
+Certificate
+    subject              localhost
+    issued by            pqlab throwaway CA
+    valid for            localhost, 127.0.0.1, ::1
+    public key           EC (secp256r1), 256 bits
+    signature algorithm  ecdsa-with-SHA256
+    valid from           2026-11-25T21:00:22+00:00
+    expires              2026-12-02T21:05:22+00:00  (6 days left)
+    SHA-256 fingerprint  067fc5323b48d52b6e865229ec984d29...
+
+Quantum check
+    safe       Key exchange           X25519MLKEM768
+                                      hybrid: safe if either X25519 or ML-KEM holds
+    safe       Bulk cipher            TLS_AES_256_GCM_SHA384
+                                      256-bit key keeps a wide margin against Grover's algorithm
+    VULNERABLE Certificate signature  ecdsa-with-SHA256 (EC (secp256r1))
+                                      a quantum computer could forge it, but only from the day it
+                                      exists (no 'harvest now' risk); the fix is ML-DSA certificates
+```
+
+The key exchange group now has **three independent witnesses**: Python's `ssl` module, the lab's
+own decoding of the ServerHello bytes, and the separate `openssl s_client` program. The
+**quantum check** gives the honest picture of a "post-quantum" TLS server in 2026. The key
+exchange and the cipher are safe, but the certificate signature is not yet. The inspector, like
+everything else here, refuses to connect to anything but this machine.
+
+## Scanning the lab with its own inventory tool
+
+The previous project in this series,
+[crypto-inventory-scanner](https://github.com/AccidentalSpaceMan/crypto-inventory-scanner), lists
+the cryptography a codebase uses and grades it. Pointed at this lab, it finds exactly what you'd
+hope:
+
+```bash
+pip install "crypto-inventory-scanner @ git+https://github.com/AccidentalSpaceMan/crypto-inventory-scanner@v0.9.0"
+cryptoinv scan pqlab
+```
+
+| Grade | Algorithm | Where | Why it's here |
+|---|---|---|---|
+| CURRENT | **ML-KEM (FIPS 203)** | `kem.py`, `bench.py`, `env.py` | The post-quantum KEM this lab is about |
+| CURRENT | SHA-256 | `certs.py`, `inspector.py`, `wire.py` | Certificate signing hash, fingerprints, the RFC 8446 HelloRetryRequest marker |
+| CURRENT | TLS 1.3 contexts | `tls_lab.py`, `env.py` | The hybrid TLS server and client |
+| LEGACY, quantum-vulnerable | **X25519** | `bench.py` | The classical baseline ML-KEM is measured against |
+| LEGACY, quantum-vulnerable | ECDSA P-256 | `certs.py` | The throwaway certificates (see "One thing that is still classical") |
+
+`Summary: BROKEN 0 | LEGACY 2 algorithms (11 places), 2 quantum-vulnerable | CURRENT 3 algorithms (18 places)`
+
+The scanner also notices that X25519 and ML-KEM appear together and asks whether they're
+combined into a hybrid. Here they are, inside TLS's X25519MLKEM768. Lines in `inspector.py` that
+only *recognise* key types in certificates (such as `isinstance(key, rsa.RSAPublicKey)`) carry a
+`cryptoinv: ignore` comment, because they don't use those algorithms. CI runs this scan on every
+push and fails if anything BROKEN appears.
+
+## Project layout
+
+```text
+pqlab/
+  env.py        checks this Python can run both parts (pqlab env)
+  kem.py        Part 1: the ML-KEM-768 flow, step by step (pqlab kem)
+  bench.py      Part 1: sizes + timings vs X25519 (pqlab bench)
+  chart.py      Part 1: draws the benchmark chart as SVG, no plotting library
+  certs.py      Part 2: throwaway CA + localhost certificate, made at run time
+  tls_lab.py    Part 2: local TLS 1.3 server and client, loopback only
+  wire.py       Part 2: recording relay + ClientHello/ServerHello decoder (the proof)
+  hybrid.py     Part 2: runs a handshake through the relay and explains it (pqlab demo / connect)
+  inspector.py  Part 2: certificate + handshake report with a quantum check (pqlab inspect)
+  cli.py        the pqlab command
+tests/          pytest suite (run on Ubuntu, Windows and macOS in CI)
+docs/           the chart, its raw numbers, and the demo screenshot
+```
 
 ## Safety
 

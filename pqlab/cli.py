@@ -140,6 +140,26 @@ def cmd_connect(args: argparse.Namespace) -> int:
     return 0 if result.proven else 1
 
 
+def cmd_inspect(args: argparse.Namespace) -> int:
+    import json
+    from pathlib import Path
+
+    from . import inspector
+
+    if args.port is None:
+        print("No --port given: starting a throwaway local server to inspect.\n", file=sys.stderr)
+        report = inspector.inspect_own_server(args.server_groups, args.groups, args.openssl)
+    else:
+        report = inspector.inspect(args.host, args.port, Path(args.cafile), args.groups, args.openssl)
+    if args.json:
+        print(json.dumps(report.to_dict(), indent=2))
+    else:
+        print("\n".join(inspector.render(report)))
+        if args.openssl and report.openssl_cli is None:
+            print("\n(openssl 3.5+ not found on PATH, so no second opinion)")
+    return 0 if report.error is None else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="pqlab",
@@ -183,6 +203,16 @@ def build_parser() -> argparse.ArgumentParser:
     p_connect.add_argument("--cafile", default="certs/ca.pem", help="the CA certificate `pqlab serve` printed")
     p_connect.add_argument("--groups", default="X25519MLKEM768:X25519", help=groups_help)
     p_connect.set_defaults(func=cmd_connect)
+
+    p_insp = sub.add_parser("inspect", help="inspect a local TLS server's certificate and handshake")
+    p_insp.add_argument("--host", default="127.0.0.1", help="loopback address of the server")
+    p_insp.add_argument("--port", type=int, help="port of a running `pqlab serve`; omit to inspect a throwaway server")
+    p_insp.add_argument("--cafile", default="certs/ca.pem", help="CA certificate to trust (with --port)")
+    p_insp.add_argument("--groups", default="X25519MLKEM768:X25519", help="groups the inspector offers")
+    p_insp.add_argument("--server-groups", default="X25519MLKEM768", help="groups the throwaway server accepts")
+    p_insp.add_argument("--openssl", action="store_true", help="also ask `openssl s_client` (3.5+) for a second opinion")
+    p_insp.add_argument("--json", action="store_true", help="print the report as JSON")
+    p_insp.set_defaults(func=cmd_inspect)
     return parser
 
 
