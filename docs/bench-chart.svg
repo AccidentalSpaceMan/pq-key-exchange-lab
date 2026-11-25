@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 490" width="760" height="490" role="img" aria-label="Bar charts comparing key exchange sizes and speeds of X25519, ML-KEM-768 and X25519MLKEM768">
+<style>
+  .surface { fill: #fcfcfb; }
+  .ink { fill: #0b0b0b; }
+  .ink2 { fill: #52514e; }
+  .muted { fill: #898781; }
+  .grid { stroke: #e1e0d9; stroke-width: 1; }
+  .axis { stroke: #c3c2b7; stroke-width: 1; }
+  .s1 { fill: #2a78d6; } .s2 { fill: #eb6834; } .s3 { fill: #1baf7a; }
+  @media (prefers-color-scheme: dark) {
+    .surface { fill: #1a1a19; }
+    .ink { fill: #f0efec; }
+    .ink2 { fill: #c3c2b7; }
+    .grid { stroke: #2c2c2a; }
+    .axis { stroke: #383835; }
+    .s1 { fill: #3987e5; } .s2 { fill: #d95926; } .s3 { fill: #199e70; }
+  }
+  text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .bar:hover { opacity: 0.85; }
+</style>
+<rect class="surface" width="760" height="490" rx="8"/>
+<text x="16.0" y="28.0" class="ink" font-size="16" text-anchor="start" font-weight="600">X25519 vs ML-KEM-768 vs the X25519MLKEM768 hybrid</text>
+<text x="16.0" y="48.0" class="ink2" font-size="11" text-anchor="start" font-weight="400">Measured on 13th Gen Intel(R) Core(TM) i7-13620H, Windows 11 · Python 3.15.2 · cryptography 50.0.2</text>
+<rect class="s1" x="16" y="61" width="10" height="10" rx="2"/>
+<text x="31.0" y="70.0" class="ink2" font-size="12" text-anchor="start" font-weight="400">X25519</text>
+<rect class="s2" x="89.2" y="61" width="10" height="10" rx="2"/>
+<text x="104.2" y="70.0" class="ink2" font-size="12" text-anchor="start" font-weight="400">ML-KEM-768</text>
+<rect class="s3" x="191.2" y="61" width="10" height="10" rx="2"/>
+<text x="206.2" y="70.0" class="ink2" font-size="12" text-anchor="start" font-weight="400">X25519MLKEM768</text>
+<text x="16.0" y="104.0" class="ink" font-size="13" text-anchor="start" font-weight="600">Bytes sent per key exchange (public key + reply)</text>
+<line class="axis" x1="150.0" y1="114.0" x2="150.0" y2="192.0"/>
+<text x="150.0" y="206.0" class="muted" font-size="11" text-anchor="middle" font-weight="400">0</text>
+<line class="grid" x1="254.0" y1="114.0" x2="254.0" y2="192.0"/>
+<text x="254.0" y="206.0" class="muted" font-size="11" text-anchor="middle" font-weight="400">500</text>
+<line class="grid" x1="358.0" y1="114.0" x2="358.0" y2="192.0"/>
+<text x="358.0" y="206.0" class="muted" font-size="11" text-anchor="middle" font-weight="400">1,000</text>
+<line class="grid" x1="462.0" y1="114.0" x2="462.0" y2="192.0"/>
+<text x="462.0" y="206.0" class="muted" font-size="11" text-anchor="middle" font-weight="400">1,500</text>
+<line class="grid" x1="566.0" y1="114.0" x2="566.0" y2="192.0"/>
+<text x="566.0" y="206.0" class="muted" font-size="11" text-anchor="middle" font-weight="400">2,000</text>
+<line class="grid" x1="670.0" y1="114.0" x2="670.0" y2="192.0"/>
+<text x="670.0" y="206.0" class="muted" font-size="11" text-anchor="middle" font-weight="400">2,500 B</text>
+<text x="140.0" y="131.0" class="ink2" font-size="12" text-anchor="end" font-weight="400">X25519</text>
+<path class="bar s1" d="M150.0,118.0 H159.3 Q163.3,118.0 163.3,122.0 V132.0 Q163.3,136.0 159.3,136.0 H150.0 Z"><title>X25519: 64 bytes = 32 public key + 32 reply</title></path>
+<text x="169.3" y="131.0" class="ink" font-size="12" text-anchor="start" font-weight="400">64 B</text>
+<text x="140.0" y="157.0" class="ink2" font-size="12" text-anchor="end" font-weight="400">ML-KEM-768</text>
+<path class="bar s2" d="M150.0,144.0 H618.6 Q622.6,144.0 622.6,148.0 V158.0 Q622.6,162.0 618.6,162.0 H150.0 Z"><title>ML-KEM-768: 2,272 bytes = 1,184 public key + 1,088 reply</title></path>
+<text x="628.6" y="157.0" class="ink" font-size="12" text-anchor="start" font-weight="400">2,272 B</text>
+<text x="140.0" y="183.0" class="ink2" font-size="12" text-anchor="end" font-weight="400">X25519MLKEM768</text>
+<path class="bar s3" d="M150.0,170.0 H631.9 Q635.9,170.0 635.9,174.0 V184.0 Q635.9,188.0 631.9,188.0 H150.0 Z"><title>X25519MLKEM768: 2,336 bytes = 1,216 public key + 1,120 reply</title></path>
+<text x="641.9" y="183.0" class="ink" font-size="12" text-anchor="start" font-weight="400">2,336 B</text>
+<text x="16.0" y="242.0" class="ink" font-size="13" text-anchor="start" font-weight="600">Time per operation, microseconds (median; shorter is faster)</text>
+<line class="axis" x1="150.0" y1="252.0" x2="150.0" y2="426.0"/>
+<text x="150.0" y="440.0" class="muted" font-size="11" text-anchor="middle" font-weight="400">0</text>
+<line class="grid" x1="254.0" y1="252.0" x2="254.0" y2="426.0"/>
+<text x="254.0" y="440.0" class="muted" font-size="11" text-anchor="middle" font-weight="400">50</text>
+<line class="grid" x1="358.0" y1="252.0" x2="358.0" y2="426.0"/>
+<text x="358.0" y="440.0" class="muted" font-size="11" text-anchor="middle" font-weight="400">100</text>
+<line class="grid" x1="462.0" y1="252.0" x2="462.0" y2="426.0"/>
+<text x="462.0" y="440.0" class="muted" font-size="11" text-anchor="middle" font-weight="400">150</text>
+<line class="grid" x1="566.0" y1="252.0" x2="566.0" y2="426.0"/>
+<text x="566.0" y="440.0" class="muted" font-size="11" text-anchor="middle" font-weight="400">200</text>
+<line class="grid" x1="670.0" y1="252.0" x2="670.0" y2="426.0"/>
+<text x="670.0" y="440.0" class="muted" font-size="11" text-anchor="middle" font-weight="400">250 µs</text>
+<text x="140.0" y="283.0" class="ink2" font-size="12" text-anchor="end" font-weight="400">keygen (Bob)</text>
+<path class="bar s1" d="M150.0,256.0 H217.6 Q221.6,256.0 221.6,260.0 V266.0 Q221.6,270.0 217.6,270.0 H150.0 Z"><title>X25519 keygen: 34.4 µs</title></path>
+<text x="227.6" y="267.0" class="ink2" font-size="11" text-anchor="start" font-weight="400">34.4</text>
+<path class="bar s2" d="M150.0,272.0 H508.9 Q512.9,272.0 512.9,276.0 V282.0 Q512.9,286.0 508.9,286.0 H150.0 Z"><title>ML-KEM-768 keygen: 174.5 µs</title></path>
+<text x="518.9" y="283.0" class="ink2" font-size="11" text-anchor="start" font-weight="400">174.5</text>
+<path class="bar s3" d="M150.0,288.0 H579.3 Q583.3,288.0 583.3,292.0 V298.0 Q583.3,302.0 579.3,302.0 H150.0 Z"><title>X25519MLKEM768 keygen: 208.3 µs</title></path>
+<text x="589.3" y="299.0" class="ink2" font-size="11" text-anchor="start" font-weight="400">208.3</text>
+<text x="140.0" y="343.0" class="ink2" font-size="12" text-anchor="end" font-weight="400">encaps (Alice)</text>
+<path class="bar s1" d="M150.0,316.0 H282.5 Q286.5,316.0 286.5,320.0 V326.0 Q286.5,330.0 282.5,330.0 H150.0 Z"><title>X25519 encaps: 65.6 µs</title></path>
+<text x="292.5" y="327.0" class="ink2" font-size="11" text-anchor="start" font-weight="400">65.6</text>
+<path class="bar s2" d="M150.0,332.0 H227.3 Q231.3,332.0 231.3,336.0 V342.0 Q231.3,346.0 227.3,346.0 H150.0 Z"><title>ML-KEM-768 encaps: 39.1 µs</title></path>
+<text x="237.3" y="343.0" class="ink2" font-size="11" text-anchor="start" font-weight="400">39.1</text>
+<path class="bar s3" d="M150.0,348.0 H361.0 Q365.0,348.0 365.0,352.0 V358.0 Q365.0,362.0 361.0,362.0 H150.0 Z"><title>X25519MLKEM768 encaps: 103.4 µs</title></path>
+<text x="371.0" y="359.0" class="ink2" font-size="11" text-anchor="start" font-weight="400">103.4</text>
+<text x="140.0" y="403.0" class="ink2" font-size="12" text-anchor="end" font-weight="400">decaps (Bob)</text>
+<path class="bar s1" d="M150.0,376.0 H207.1 Q211.1,376.0 211.1,380.0 V386.0 Q211.1,390.0 207.1,390.0 H150.0 Z"><title>X25519 decaps: 29.4 µs</title></path>
+<text x="217.1" y="387.0" class="ink2" font-size="11" text-anchor="start" font-weight="400">29.4</text>
+<path class="bar s2" d="M150.0,392.0 H262.0 Q266.0,392.0 266.0,396.0 V402.0 Q266.0,406.0 262.0,406.0 H150.0 Z"><title>ML-KEM-768 decaps: 55.8 µs</title></path>
+<text x="272.0" y="403.0" class="ink2" font-size="11" text-anchor="start" font-weight="400">55.8</text>
+<path class="bar s3" d="M150.0,408.0 H322.6 Q326.6,408.0 326.6,412.0 V418.0 Q326.6,422.0 322.6,422.0 H150.0 Z"><title>X25519MLKEM768 decaps: 84.9 µs</title></path>
+<text x="332.6" y="419.0" class="ink2" font-size="11" text-anchor="start" font-weight="400">84.9</text>
+<text x="16.0" y="472.0" class="muted" font-size="11" text-anchor="start" font-weight="400">Each time is the median of 7 runs of 2,000 calls, through Python&#x27;s cryptography package (includes Python call overhead).</text>
+</svg>

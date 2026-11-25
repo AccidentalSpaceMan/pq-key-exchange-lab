@@ -67,6 +67,60 @@ secret, and the connection simply fails later.
 lattice maths ("module learning with errors") that no known quantum algorithm breaks, while
 X25519 would fall to Shor's algorithm on a large quantum computer.
 
+### Sizes and speed: ML-KEM-768 vs X25519
+
+![Bar charts: bytes sent per key exchange and time per operation for X25519, ML-KEM-768 and the X25519MLKEM768 hybrid](docs/bench-chart.svg)
+
+**Sizes** (bytes, read from real keys and ciphertexts, not copied from a table):
+
+| Scheme | Public key (Bob sends) | Private key (stored) | Reply (Alice sends) | Shared secret | **On the wire** |
+|---|---:|---:|---:|---:|---:|
+| X25519 | 32 | 32 | 32 | 32 | **64** |
+| ML-KEM-768 | 1,184 | 64 (seed) | 1,088 | 32 | **2,272** |
+| X25519MLKEM768 (hybrid) | 1,216 | 96 | 1,120 | 64 | **2,336** |
+
+**Speed** (microseconds per call, median of 7 runs × 2,000 calls; shorter is faster). Measured on
+a 13th Gen Intel Core i7-13620H laptop, Windows 11, Python 3.15.2, `cryptography` 50.0.2:
+
+| Scheme | keygen (Bob) | encaps (Alice) | decaps (Bob) | Total |
+|---|---:|---:|---:|---:|
+| X25519 | 34.4 | 65.6 | 29.4 | 129.4 |
+| ML-KEM-768 | 174.5 | 39.1 | 55.8 | 269.3 |
+| X25519MLKEM768 (hybrid) | 208.3 | 103.4 | 84.9 | 396.6 |
+
+For X25519, "encaps" means Alice makes her own key pair and combines it with Bob's public key, and
+"decaps" means Bob combines his private key with Alice's public key, so the three steps line up
+with the KEM ones.
+
+**What the numbers say, in plain terms:**
+
+- **Size is the real cost.** A hybrid key exchange sends about **36 times** as many bytes as
+  X25519 alone (2,336 vs 64). It still fits in a normal TLS handshake, but the browser's
+  opening message (the ClientHello) grows by more than 1 KB and no longer fits in one network
+  packet. Some old network boxes that assumed it would broke when browsers turned the hybrid on.
+- **Speed is not a problem.** Every step takes well under a millisecond. ML-KEM is actually
+  *faster* than X25519 for Alice's step (encaps), and the whole hybrid costs about 0.4 ms of CPU
+  per connection, which is small next to the network round trip.
+- **The hybrid costs roughly the sum of its parts**, because it simply runs both.
+
+**A note on keygen:** these timings go through Python, so each one includes the cost of creating
+Python objects. OpenSSL's own benchmark on the same laptop (`openssl speed -kem-algorithms
+ML-KEM-768 X25519`, OpenSSL 3.5.7) measured ML-KEM-768 keygen at about 33 µs, encaps 18 µs and
+decaps 27 µs, against X25519's 26, 62 and 31 µs. Encaps and decaps are close to the Python
+numbers. Keygen through Python is about 5 times slower. We didn't dig into why, but keygen is
+ML-KEM's slowest step in both measurements, so the conclusions above hold either way.
+
+**Reproduce it** (your numbers will differ with your CPU; the sizes won't):
+
+```bash
+python -m pqlab bench                     # full run, about 15 seconds
+python -m pqlab bench --quick             # rough run, about 1 second
+python -m pqlab bench --from-json docs/bench-results.json --json "" --svg my-chart.svg   # redraw only
+openssl speed -kem-algorithms ML-KEM-768 X25519    # native OpenSSL numbers, if you have OpenSSL 3.5+
+```
+
+The raw numbers behind the chart above are in [docs/bench-results.json](docs/bench-results.json).
+
 ## Safety
 
 - Everything runs on your own machine. The TLS part only talks to a server it starts itself on
