@@ -1,0 +1,51 @@
+{
+  "sizes": {
+    "X25519": {
+      "public_key": 32,
+      "private_key": 32,
+      "ciphertext": 32,
+      "shared_secret": 32,
+      "on_the_wire": 64
+    },
+    "ML-KEM-768": {
+      "public_key": 1184,
+      "private_key": 64,
+      "ciphertext": 1088,
+      "shared_secret": 32,
+      "on_the_wire": 2272
+    },
+    "X25519MLKEM768": {
+      "public_key": 1216,
+      "private_key": 96,
+      "ciphertext": 1120,
+      "shared_secret": 64,
+      "on_the_wire": 2336
+    }
+  },
+  "microseconds": {
+    "X25519": {
+      "keygen": 34.43,
+      "encaps": 65.61,
+      "decaps": 29.39
+    },
+    "ML-KEM-768": {
+      "keygen": 174.46,
+      "encaps": 39.09,
+      "decaps": 55.76
+    },
+    "X25519MLKEM768": {
+      "keygen": 208.32,
+      "encaps": 103.38,
+      "decaps": 84.9
+    }
+  },
+  "iterations": 2000,
+  "repeats": 7,
+  "environment": {
+    "cpu": "13th Gen Intel(R) Core(TM) i7-13620H",
+    "os": "Windows 11",
+    "python": "3.15.2",
+    "cryptography": "50.0.2",
+    "openssl (cryptography)": "OpenSSL 4.0.3 29 Sep 2026"
+  }
+}

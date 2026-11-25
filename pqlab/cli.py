@@ -50,6 +50,48 @@ def cmd_kem(args: argparse.Namespace) -> int:
     return 0 if ok else 1
 
 
+def print_bench(r) -> None:
+    from .bench import OPERATIONS, SCHEMES
+
+    print("Sizes (bytes)")
+    print(f"    {'scheme':<16}{'public key':>11}{'private':>9}{'reply':>8}{'secret':>8}{'on wire':>9}")
+    for s in SCHEMES:
+        z = r.sizes[s]
+        print(f"    {s:<16}{z['public_key']:>11}{z['private_key']:>9}{z['ciphertext']:>8}"
+              f"{z['shared_secret']:>8}{z['on_the_wire']:>9}")
+    print()
+    print(f"Speed (microseconds per call, median of {r.repeats} x {r.iterations} calls)")
+    print(f"    {'scheme':<16}" + "".join(f"{op:>10}" for op in OPERATIONS) + f"{'total':>10}")
+    for s in SCHEMES:
+        t = r.microseconds[s]
+        print(f"    {s:<16}" + "".join(f"{t[op]:>10.1f}" for op in OPERATIONS) + f"{sum(t.values()):>10.1f}")
+    print()
+    for k, v in r.environment.items():
+        print(f"    {k}: {v}")
+
+
+def cmd_bench(args: argparse.Namespace) -> int:
+    from pathlib import Path
+
+    from . import bench, chart
+
+    if args.from_json:
+        r = bench.BenchResult.from_json(Path(args.from_json).read_text(encoding="utf-8"))
+    else:
+        iterations, repeats = (200, 3) if args.quick else (args.iterations, args.repeats)
+        print(f"Timing {len(bench.SCHEMES)} schemes x {len(bench.OPERATIONS)} operations "
+              f"({repeats} x {iterations} calls each)...\n")
+        r = bench.run(iterations, repeats)
+    print_bench(r)
+    for path, text in ((args.json, r.to_json()), (args.svg, chart.render(r))):
+        if path:
+            p = Path(path)
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(text, encoding="utf-8")
+            print(f"\nwrote {p}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="pqlab",
@@ -64,6 +106,15 @@ def build_parser() -> argparse.ArgumentParser:
     p_kem = sub.add_parser("kem", help="walk through the ML-KEM-768 flow step by step")
     p_kem.add_argument("--full", action="store_true", help="show 64 bytes of each value instead of 16")
     p_kem.set_defaults(func=cmd_kem)
+
+    p_bench = sub.add_parser("bench", help="measure sizes and speed: X25519 vs ML-KEM-768 vs the hybrid")
+    p_bench.add_argument("--iterations", type=int, default=2000, help="calls per timing loop (default 2000)")
+    p_bench.add_argument("--repeats", type=int, default=7, help="timing loops per operation; the median is kept (default 7)")
+    p_bench.add_argument("--quick", action="store_true", help="a fast, rougher run (200 calls x 3)")
+    p_bench.add_argument("--json", default="results/bench.json", help="where to save the numbers ('' to skip)")
+    p_bench.add_argument("--svg", default="results/bench.svg", help="where to save the chart ('' to skip)")
+    p_bench.add_argument("--from-json", metavar="PATH", help="redraw from saved numbers instead of measuring")
+    p_bench.set_defaults(func=cmd_bench)
     return parser
 
 
