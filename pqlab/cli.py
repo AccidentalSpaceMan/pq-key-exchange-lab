@@ -92,6 +92,54 @@ def cmd_bench(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_demo(args: argparse.Namespace) -> int:
+    from . import hybrid
+
+    print("Hybrid TLS demo: everything runs on 127.0.0.1 and stops when the demo ends.")
+    print(f"  server accepts:  {args.server_groups}")
+    print(f"  client offers:   {args.client_groups}")
+    print("  certificates:    a throwaway CA + localhost certificate, made now, deleted afterwards\n")
+    modern, classical = hybrid.run_demo(args.client_groups, args.server_groups)
+    print("\n".join(hybrid.explain(modern)))
+    print("\n" + "-" * 88)
+    print("Control test: a classical-only client (offers only X25519) against the same server\n")
+    if classical.handshake:
+        print(f"    connected with {classical.handshake.group}")
+    else:
+        print(f"    refused, as it should be: {classical.error}")
+    return 0 if modern.proven else 1
+
+
+def cmd_serve(args: argparse.Namespace) -> int:
+    from pathlib import Path
+
+    from . import certs, tls_lab
+
+    lab = certs.make_lab_certs(Path(args.cert_dir))
+    server = tls_lab.LabServer(lab, args.groups, args.host, args.port)
+    print(f"pqlab TLS server on {args.host}:{server.port}, accepting groups: {args.groups}")
+    print(f"Throwaway CA certificate for clients: {lab.ca_cert}")
+    print(f"In another terminal:  python -m pqlab connect --port {server.port} --cafile {lab.ca_cert}")
+    print("Ctrl+C to stop.")
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("\nstopped")
+    finally:
+        server.close()
+    return 0
+
+
+def cmd_connect(args: argparse.Namespace) -> int:
+    from pathlib import Path
+
+    from . import hybrid
+
+    result = hybrid.handshake_via_relay(args.host, args.port, Path(args.cafile), args.groups)
+    print("\n".join(hybrid.explain(result)))
+    return 0 if result.proven else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="pqlab",
@@ -115,12 +163,44 @@ def build_parser() -> argparse.ArgumentParser:
     p_bench.add_argument("--svg", default="results/bench.svg", help="where to save the chart ('' to skip)")
     p_bench.add_argument("--from-json", metavar="PATH", help="redraw from saved numbers instead of measuring")
     p_bench.set_defaults(func=cmd_bench)
+
+    groups_help = "colon-separated TLS groups, most preferred first"
+    p_demo = sub.add_parser("demo", help="hybrid TLS: local server + client, and prove the group from the wire")
+    p_demo.add_argument("--client-groups", default="X25519MLKEM768:X25519", help=groups_help)
+    p_demo.add_argument("--server-groups", default="X25519MLKEM768", help=groups_help)
+    p_demo.set_defaults(func=cmd_demo)
+
+    p_serve = sub.add_parser("serve", help="run the local hybrid TLS server until Ctrl+C")
+    p_serve.add_argument("--host", default="127.0.0.1", help="loopback address to listen on")
+    p_serve.add_argument("--port", type=int, default=8443)
+    p_serve.add_argument("--groups", default="X25519MLKEM768", help=groups_help)
+    p_serve.add_argument("--cert-dir", default="certs", help="where to write the throwaway certificates (git-ignored)")
+    p_serve.set_defaults(func=cmd_serve)
+
+    p_connect = sub.add_parser("connect", help="connect to a local `pqlab serve` and prove the group from the wire")
+    p_connect.add_argument("--host", default="127.0.0.1", help="loopback address of the server")
+    p_connect.add_argument("--port", type=int, default=8443)
+    p_connect.add_argument("--cafile", default="certs/ca.pem", help="the CA certificate `pqlab serve` printed")
+    p_connect.add_argument("--groups", default="X25519MLKEM768:X25519", help=groups_help)
+    p_connect.set_defaults(func=cmd_connect)
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
+    from .tls_lab import NotLoopbackError
+
     args = build_parser().parse_args(argv)
-    return args.func(args)
+    try:
+        return args.func(args)
+    except NotLoopbackError as e:
+        print(f"pqlab: {e}", file=sys.stderr)
+        return 2
+    except FileNotFoundError as e:
+        print(f"pqlab: {e}", file=sys.stderr)
+        return 2
+    except ConnectionRefusedError:
+        print("pqlab: nothing is listening there. Start `python -m pqlab serve` first.", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":

@@ -11,7 +11,7 @@ A hands-on lab for the key exchange that replaces today's quantum-vulnerable one
   by reading the handshake bytes, and includes a small inspector for the server's certificate
   and handshake.
 
-> **Status:** work in progress. Part 1 and Part 2 land in the next releases.
+> **Status:** Part 1 and Part 2 work; the certificate inspector and a tagged release come next.
 
 This is the third step of a portfolio series: learn the primitives
 ([crypto-primitive-playground](https://github.com/AccidentalSpaceMan/crypto-primitive-playground)),
@@ -120,6 +120,78 @@ openssl speed -kem-algorithms ML-KEM-768 X25519    # native OpenSSL numbers, if 
 ```
 
 The raw numbers behind the chart above are in [docs/bench-results.json](docs/bench-results.json).
+
+## Part 2: hybrid TLS, proven from the wire
+
+```bash
+python -m pqlab demo
+```
+
+This starts a TLS 1.3 server on `127.0.0.1` that accepts **only** X25519MLKEM768, connects a
+client to it, and checks the result two independent ways:
+
+1. **What OpenSSL says.** Python 3.15's `ssl` module can now choose the key exchange
+   (`SSLContext.set_groups("X25519MLKEM768")`) and report what was used (`SSLSocket.group()`).
+2. **What the bytes say.** The client actually connects to a small *recording relay* that
+   passes every byte to the server unchanged and keeps a copy, like a post office that
+   photocopies each envelope before delivering it. The lab then decodes the first two
+   handshake messages itself. They travel before encryption starts, so they can be read:
+   - the **ClientHello** (the client's opening message) lists the groups it accepts and carries a
+     **key share** (its half of the key exchange) for X25519MLKEM768;
+   - the **ServerHello** (the reply) names the one group the server picked, and carries the
+     server's key share.
+
+The verdict is **PROVEN** only if both witnesses agree and the sizes are right:
+
+| What the lab checks | Expected | Why it can only be the hybrid |
+|---|---|---|
+| ServerHello picks group | `0x11EC` | IANA's codepoint for X25519MLKEM768 |
+| Client key share | 1,216 bytes | 1,184 ML-KEM-768 public key + 32 X25519 public key |
+| Server key share | 1,120 bytes | 1,088 ML-KEM-768 ciphertext + 32 X25519 public key |
+| Protocol version | TLS 1.3 (`0x0304`) | Hybrid groups only exist in TLS 1.3 |
+
+A plain X25519 exchange would show group `0x001D` with 32-byte shares, so the two can't be confused.
+
+![pqlab demo output](docs/demo.png)
+
+### What a "hybrid" is, and why the web uses one
+
+X25519MLKEM768 runs **both** key exchanges in the same handshake and feeds **both** shared secrets
+into the session keys. An attacker has to break *both* to read the traffic:
+
+- If a future quantum computer breaks X25519, ML-KEM still protects the session.
+- If someone finds a flaw in ML-KEM (it is much newer), X25519 still protects it.
+
+It is like locking a door with two different locks from two different makers. The cost is the
+extra ~2.3 KB per handshake measured in Part 1. Chrome, Firefox, Safari and Cloudflare turned this
+hybrid on by default because of **"harvest now, decrypt later"**: an attacker can record encrypted
+traffic today and decrypt it years later once a big enough quantum computer exists, so the key
+exchange has to be quantum-safe *before* that computer arrives.
+
+### The experiments the tests run
+
+| Server accepts | Client offers | Result |
+|---|---|---|
+| X25519MLKEM768 | X25519MLKEM768, X25519 | **Hybrid, proven** (group `0x11EC`, 1216 / 1120-byte shares) |
+| X25519MLKEM768 | X25519 only | **Refused**: the server has no group in common (`NO_SUITABLE_KEY_SHARE`) |
+| X25519MLKEM768, X25519 | X25519 only | Connects with **x25519**, and the lab reports it as *not* hybrid |
+| X25519MLKEM768 | X25519 first, then X25519MLKEM768 | The server sends a **HelloRetryRequest** ("send me a hybrid key share"), costing one extra round trip, then the hybrid is proven |
+
+Try your own combinations: `python -m pqlab demo --client-groups X25519 --server-groups X25519MLKEM768:X25519`.
+
+### Two terminals instead of one
+
+```bash
+python -m pqlab serve                    # terminal 1: makes throwaway certs in ./certs (git-ignored)
+python -m pqlab connect                  # terminal 2: handshake + wire proof
+```
+
+### One thing that is still classical
+
+The certificate that proves the server's identity is signed with ECDSA P-256, which a quantum
+computer could forge. That matches the web today: key exchange moved first because of "harvest
+now, decrypt later", while forged signatures only matter once such a computer exists. Moving
+certificates to ML-DSA (FIPS 204) is the next step, and the next project in this series.
 
 ## Safety
 

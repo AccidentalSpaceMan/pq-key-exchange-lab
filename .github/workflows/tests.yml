@@ -77,3 +77,4 @@ jobs:
           pqlab env
           pqlab kem
           pqlab bench --quick --json "" --svg ""
+          pqlab demo
