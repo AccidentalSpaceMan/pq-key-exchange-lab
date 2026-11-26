@@ -1,5 +1,5 @@
 # ML-KEM-768, X25519 and certificate handling (the TLS part uses Python's built-in ssl module).
-cryptography>=46
+cryptography>=50
 
 # For the tests:
 pytest>=8

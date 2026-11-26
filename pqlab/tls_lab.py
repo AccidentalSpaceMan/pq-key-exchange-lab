@@ -120,6 +120,12 @@ class LabServer:
                 group = tls.group()
                 self.log.groups.append(group)
                 tls.sendall(f"hello from the pqlab server, key exchange group = {group}\n".encode())
+                # Say goodbye properly (a TLS "close_notify"), so the client can tell a clean end
+                # from a cut connection. The client may hang up without replying; that's fine.
+                try:
+                    tls.unwrap()
+                except (ssl.SSLError, OSError):
+                    pass
         except (ssl.SSLError, OSError) as e:
             self.log.errors.append(f"{type(e).__name__}: {e}")
 
